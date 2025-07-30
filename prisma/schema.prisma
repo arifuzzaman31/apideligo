@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id           Int         @id @default(autoincrement())
+  sessionToken String      @unique
+  userId       Int?
+  expireAt     DateTime
+  loggerType   loggerType?
+}
+model Users {
+  id               Int         @id @default(autoincrement())
+  email            String?     @unique
+  firstName        String?
+  lastName         String?
+  fullName         String?
+  identityCode     String?
+  userType         UserType?   @default(DRIVER)
+  phoneNumber      String?
+  password         String?
+  isVerified       Boolean     @default(false)
+  status           Boolean     @default(false)
+  serviceStatus    Boolean     @default(true)
+  userAddress     UserAddress[]
+  userInfo        UserInfos?
+  userLoc         UserLocation?
+  additionInfo     String?
+  deletedAt        DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  updatedBy        Int?         @default(0)
+  @@index([fullName, email, phoneNumber])
+}
+model UserAddress {
+  id               Int         @id @default(autoincrement())
+  userId           Int
+  user             Users?      @relation(fields: [userId], references: [id])
+  street           String?
+  state            String?
+  country          String?
+  city             String?
+  zip              String?
+  addressType      locationType?   @default(HOME)
+  additionInfo     String?
+  status           Boolean     @default(false)
+  deletedAt        DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  updatedBy        Int?         @default(0)
+}
+model UserInfos {
+  id               Int         @id @default(autoincrement())
+  userId           Int?        @unique
+  user             Users?      @relation(fields: [userId], references: [id])
+  birthDate        DateTime?
+  picture          String?
+  residenceAddress String?
+  occupation       String?
+  designation      String?
+  nid              Int?
+  refferalId       String?
+  tin              String?
+  status           Boolean     @default(false)
+  additionInfo     String?
+  deletedAt        DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  updatedBy        Int?         @default(0)
+  @@index([userId,nid])
+}
+model Otp {
+  id               Int         @id @default(autoincrement())
+  userId           Int?
+  phoneNumber      String?
+  isVerify         Boolean     @default(false)
+  status           Boolean     @default(false)
+  otpExpireAt      DateTime?
+  deletedAt        DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  updatedBy        Int         @default(0)
+  @@index([userId, phoneNumber])
+}
+
+model UserLocation {
+  id               Int         @id @default(autoincrement())
+  userId           Int?        @unique
+  user             Users?      @relation(fields: [userId], references: [id])
+  latitude         Float
+  longitude        Float
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  @@index([userId, latitude,longitude])
+}
+
+enum locationType {
+  HOME
+  WORK
+  OTHER
+}
+enum loggerType {
+  DASHBOARD_USER
+  APPS_USER
+}
+
+enum UserType {
+  DRIVER
+  RIDER
+}

@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "@prisma/client": "^6.13.0",
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10",
+    "pg": "^8.16.3",
+    "socket.io": "^4.8.1"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "seed": "node lib/seeder/seeder.js",
+    "load": "dotenv -e .env -- psql -U $DB_USER -h $DB_HOST -p $DB_PORT -d $DB_NAME < ryserve_two_backup.sql",
+    "download": "dotenv -e .env -- pg_dump -U $DB_USER -h $DB_HOST -p $DB_PORT $DB_NAME > ryserve_two_backup.sql",
+    "reset": "npx prisma generate && npx prisma migrate reset && npx prisma db push",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "prisma": "^6.13.0"
+  }
+}
