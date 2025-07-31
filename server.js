@@ -1,5 +1,5 @@
 // server.js or app.js
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './generated/prisma/index.js';
 import express from 'express';
 
 const prisma = new PrismaClient();
@@ -12,13 +12,86 @@ app.get('/', (req, res) => {
   res.send('Hello World!');
 });
 
+app.post('/create-user', async (req, res) => {
+  const {
+    email,
+    firstName,
+    lastName,
+    phoneNumber,
+    password,
+    latitude,
+    longitude,
+  } = req.body;
+
+  try {
+    // Create the user
+    const user = await prisma.users.create({
+      data: {
+        email,
+        firstName,
+        lastName,
+        fullName: `${firstName} ${lastName}`,
+        phoneNumber,
+        password,
+        // Set other fields if needed
+      },
+    });
+
+    // Create the location
+    const location = await prisma.userLocation.create({
+      data: {
+        userId: user.id,
+        location: [parseFloat(longitude), parseFloat(latitude)],
+      },
+    });
+
+    res.status(201).json({
+      message: 'User and location created',
+      user,
+      location,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Something went wrong' });
+  }
+});
+
 app.get('/users', async (req, res) => {
   try {
-    const users = await prisma.user.findMany();
+    const users = await prisma.users.findMany({
+      include: {
+        userLoc:true
+      }
+    });
     res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.get('/users/nearby', async (req, res) => {
+  const { lat, lng, distance } = req.query;
+
+  try {
+    const result = await prisma.$queryRaw`
+      SELECT * FROM "UserLocation"
+      WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${distance})
+    `;
+    // const result = await pool.query(
+    //   `
+    //   SELECT id, name,
+    //     ST_Distance(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS distance
+    //   FROM users
+    //   WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $3)
+    //   ORDER BY distance ASC
+    //   `,
+    //   [parseFloat(lng), parseFloat(lat), parseInt(distance)]
+    // );
+
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

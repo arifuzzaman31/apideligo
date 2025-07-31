@@ -17,14 +17,11 @@ io.on("connection", (socket) => {
   socket.on("locationUpdate", async (data) => {
     const { userId, lat, lng, type } = data; // type: rider or passenger
 
-    // Store or update in DB
     await pool.query(
-      `INSERT INTO locations (user_id, lat, lng, type)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (user_id) DO UPDATE
-       SET lat = $2, lng = $3, updated_at = NOW()`,
-      [userId, lat, lng, type]
+      `INSERT INTO UserLocation (name, location) VALUES ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326)::geography)`,
+      [name, longitude, latitude]
     );
+    res.status(201).send('User added');
 
     // Broadcast to opposite type (e.g. passengers get nearby drivers)
     socket.broadcast.emit(`${type}Location`, { userId, lat, lng });
