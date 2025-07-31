@@ -1,11 +1,11 @@
 // server.js or app.js
 import { PrismaClient } from './generated/prisma/index.js';
 import express from 'express';
-
+import { Pool } from 'pg';
 const prisma = new PrismaClient();
 const app = express();
 const port = 3000;
-
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -60,7 +60,7 @@ app.get('/users', async (req, res) => {
   try {
     const users = await prisma.users.findMany({
       include: {
-        userLoc:true
+        userLoc: true
       }
     });
     res.json(users);
@@ -72,29 +72,33 @@ app.get('/users', async (req, res) => {
 
 app.get('/users/nearby', async (req, res) => {
   const { lat, lng, distance } = req.query;
-
   try {
     const result = await prisma.$queryRaw`
-      SELECT * FROM "UserLocation"
-      WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)::geography, ${distance})
+      SELECT 
+        ul.id,
+        ul."userId",
+        ul.location,
+        u."fullName",
+        u."phoneNumber",
+        ST_Distance(
+          ST_MakePoint(ul.location[1], ul.location[2])::geography, 
+          ST_SetSRID(ST_MakePoint(${parseFloat(lng)}, ${parseFloat(lat)}), 4326)::geography
+        ) AS distance 
+      FROM "UserLocation" ul
+      JOIN "Users" u ON ul."userId" = u.id
+      WHERE ST_DWithin(
+          ST_MakePoint(ul.location[1], ul.location[2])::geography, 
+          ST_SetSRID(ST_MakePoint(${parseFloat(lng)}, ${parseFloat(lat)}), 4326)::geography, 
+          ${parseFloat(distance)}
+        ) 
+      ORDER BY distance ASC
     `;
-    // const result = await pool.query(
-    //   `
-    //   SELECT id, name,
-    //     ST_Distance(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS distance
-    //   FROM users
-    //   WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $3)
-    //   ORDER BY distance ASC
-    //   `,
-    //   [parseFloat(lng), parseFloat(lat), parseInt(distance)]
-    // );
-
-    res.json(result.rows);
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err });
   }
 });
-
+// SELECT id, ST_Distance(location, ST_SetSRID(ST_MakePoint($1, $2), 4326):: geography) AS distance FROM "UserLocation" WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint($1, $2), 4326):: geography, $3) ORDER BY distance ASC;
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
