@@ -1,6 +1,5 @@
 -- Create database
 CREATE DATABASE "deligodb";
-
 -- Connect to the new database
 \c "deligodb";
 
@@ -8,177 +7,177 @@ CREATE DATABASE "deligodb";
 CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- Create enums first
-CREATE TYPE "locationType" AS ENUM ('HOME', 'WORK', 'OTHER');
-CREATE TYPE "loggerType" AS ENUM ('DASHBOARD_USER', 'APPS_USER');
-CREATE TYPE "UserType" AS ENUM ('DRIVER', 'RIDER');
+CREATE TYPE "location_type" AS ENUM ('HOME', 'WORK', 'OTHER');
+CREATE TYPE "logger_type" AS ENUM ('DASHBOARD_USER', 'APPS_USER');
+CREATE TYPE "user_type" AS ENUM ('DRIVER', 'RIDER');
 
 -- Create Users table
-CREATE TABLE "Users" (
+CREATE TABLE "users" (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE,
-    firstName VARCHAR(255),
-    lastName VARCHAR(255),
-    fullName VARCHAR(255),
-    identityCode VARCHAR(255),
-    userType "UserType" DEFAULT 'DRIVER',
-    phoneNumber VARCHAR(50),
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
+    full_name VARCHAR(255),
+    identity_code VARCHAR(255),
+    user_type "user_type" DEFAULT 'DRIVER',
+    phone_number VARCHAR(50),
     password VARCHAR(255),
-    isVerified BOOLEAN DEFAULT FALSE,
+    is_verified BOOLEAN DEFAULT FALSE,
     status BOOLEAN DEFAULT FALSE,
-    serviceStatus BOOLEAN DEFAULT TRUE,
-    additionInfo TEXT,
-    deletedAt TIMESTAMP WITH TIME ZONE,
-    createdAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updatedBy INTEGER DEFAULT 0
+    service_status BOOLEAN DEFAULT TRUE,
+    addition_info TEXT,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INTEGER DEFAULT 0
 );
 
 -- Create Session table
-CREATE TABLE "Session" (
+CREATE TABLE "session" (
     id SERIAL PRIMARY KEY,
-    sessionToken VARCHAR(255) UNIQUE NOT NULL,
-    userId INTEGER,
-    expireAt TIMESTAMP WITH TIME ZONE NOT NULL,
-    loggerType "loggerType",
+    session_token VARCHAR(255) UNIQUE NOT NULL,
+    user_id INTEGER,
+    expire_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    logger_type "logger_type",
     
     -- Foreign key constraint
     CONSTRAINT fk_session_user 
-        FOREIGN KEY(userId) 
-        REFERENCES "Users"(id) 
+        FOREIGN KEY(user_id) 
+        REFERENCES "users"(id) 
         ON DELETE SET NULL
 );
 
 -- Create UserAddress table
-CREATE TABLE "UserAddress" (
+CREATE TABLE "user_address" (
     id SERIAL PRIMARY KEY,
-    userId INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
     street VARCHAR(255),
     state VARCHAR(255),
     country VARCHAR(255),
     city VARCHAR(255),
     zip VARCHAR(20),
-    addressType "locationType" DEFAULT 'HOME',
-    additionInfo TEXT,
+    address_type "location_type" DEFAULT 'HOME',
+    addition_info TEXT,
     status BOOLEAN DEFAULT FALSE,
-    deletedAt TIMESTAMP WITH TIME ZONE,
-    createdAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updatedBy INTEGER DEFAULT 0,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INTEGER DEFAULT 0,
     
     -- Foreign key constraint
     CONSTRAINT fk_user_address_user 
-        FOREIGN KEY(userId) 
-        REFERENCES "Users"(id) 
+        FOREIGN KEY(user_id) 
+        REFERENCES "users"(id) 
         ON DELETE CASCADE
 );
 
 -- Create UserInfos table
-CREATE TABLE "UserInfos" (
+CREATE TABLE "user_infos" (
     id SERIAL PRIMARY KEY,
-    userId INTEGER UNIQUE,
-    birthDate TIMESTAMP WITH TIME ZONE,
+    user_id INTEGER UNIQUE,
+    birth_date TIMESTAMP WITH TIME ZONE,
     picture VARCHAR(255),
-    residenceAddress TEXT,
+    residence_address TEXT,
     occupation VARCHAR(255),
     designation VARCHAR(255),
     nid INTEGER,
-    refferalId VARCHAR(255),
+    refferal_id VARCHAR(255),
     tin VARCHAR(255),
     status BOOLEAN DEFAULT FALSE,
-    additionInfo TEXT,
-    deletedAt TIMESTAMP WITH TIME ZONE,
-    createdAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updatedBy INTEGER DEFAULT 0,
+    addition_info TEXT,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INTEGER DEFAULT 0,
     
     -- Foreign key constraint
     CONSTRAINT fk_user_info_user 
-        FOREIGN KEY(userId) 
-        REFERENCES "Users"(id) 
+        FOREIGN KEY(user_id) 
+        REFERENCES "users"(id) 
         ON DELETE CASCADE
 );
 
 -- Create Otp table
-CREATE TABLE "Otp" (
+CREATE TABLE "otp" (
     id SERIAL PRIMARY KEY,
-    userId INTEGER,
-    phoneNumber VARCHAR(50),
-    isVerify BOOLEAN DEFAULT FALSE,
+    user_id INTEGER,
+    phone_number VARCHAR(50),
+    is_verify BOOLEAN DEFAULT FALSE,
     status BOOLEAN DEFAULT FALSE,
-    otpExpireAt TIMESTAMP WITH TIME ZONE,
-    deletedAt TIMESTAMP WITH TIME ZONE,
-    createdAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updatedBy INTEGER DEFAULT 0,
+    otp_expire_at TIMESTAMP WITH TIME ZONE,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_by INTEGER DEFAULT 0,
     
     -- Foreign key constraint
     CONSTRAINT fk_otp_user 
-        FOREIGN KEY(userId) 
-        REFERENCES "Users"(id) 
+        FOREIGN KEY(user_id) 
+        REFERENCES "users"(id) 
         ON DELETE SET NULL
 );
 
 -- Create UserLocation table with GEOGRAPHY type
-CREATE TABLE "UserLocation" (
+CREATE TABLE "user_location" (
     id SERIAL PRIMARY KEY,
-    userId INTEGER UNIQUE,
+    user_id INTEGER UNIQUE,
     location GEOGRAPHY(POINT, 4326) NOT NULL, -- Using geography type for spatial data
-    createdAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     
     -- Foreign key constraint
     CONSTRAINT fk_user_location_user 
-        FOREIGN KEY(userId) 
-        REFERENCES "Users"(id) 
+        FOREIGN KEY(user_id) 
+        REFERENCES "users"(id) 
         ON DELETE CASCADE
 );
 
 -- Create indexes
-CREATE INDEX idx_users_name_email_phone ON "Users" (fullName, email, phoneNumber);
-CREATE INDEX idx_user_address_user_id ON "UserAddress" (userId);
-CREATE INDEX idx_user_info_user_nid ON "UserInfos" (userId, nid);
-CREATE INDEX idx_otp_user_phone ON "Otp" (userId, phoneNumber);
-CREATE INDEX idx_user_location_user_id ON "UserLocation" (userId);
+CREATE INDEX idx_users_full_name_email_phone ON "users" (full_name, email, phone_number);
+CREATE INDEX idx_user_address_user_id ON "user_address" (user_id);
+CREATE INDEX idx_user_info_user_nid ON "user_infos" (user_id, nid);
+CREATE INDEX idx_otp_user_phone ON "otp" (user_id, phone_number);
+CREATE INDEX idx_user_location_user_id ON "user_location" (user_id);
 
 -- Create spatial index for location queries using geography type
-CREATE INDEX idx_user_location_spatial ON "UserLocation" USING GIST (location);
+CREATE INDEX idx_user_location_spatial ON "user_location" USING GIST (location);
 
--- Create trigger function for updating updatedAt timestamp
+-- Create trigger function for updating updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW."updatedAt" = CURRENT_TIMESTAMP;
+    NEW."updated_at" = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
 $$ language 'plpgsql';
 
 -- Create triggers for all tables
 CREATE TRIGGER update_users_updated_at
-    BEFORE UPDATE ON "Users"
+    BEFORE UPDATE ON "users"
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_session_updated_at
-    BEFORE UPDATE ON "Session"
+    BEFORE UPDATE ON "session"
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_user_address_updated_at
-    BEFORE UPDATE ON "UserAddress"
+    BEFORE UPDATE ON "user_address"
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_user_info_updated_at
-    BEFORE UPDATE ON "UserInfos"
+    BEFORE UPDATE ON "user_infos"
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_otp_updated_at
-    BEFORE UPDATE ON "Otp"
+    BEFORE UPDATE ON "otp"
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_user_location_updated_at
-    BEFORE UPDATE ON "UserLocation"
+    BEFORE UPDATE ON "user_location"
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();

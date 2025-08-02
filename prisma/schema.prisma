@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -15,94 +9,110 @@ datasource db {
 }
 
 model Session {
-  id           Int         @id @default(autoincrement())
-  sessionToken String      @unique
-  userId       Int?
-  expireAt     DateTime
-  loggerType   loggerType?
+  id           Int         @id @default(autoincrement()) @map("id")
+  sessionToken String      @unique @map("session_token")
+  userId       Int?        @map("user_id")
+  expireAt     DateTime    @map("expire_at")
+  loggerType   loggerType? @map("logger_type")
+  
+  @@map("session")
 }
+
 model Users {
-  id               Int         @id @default(autoincrement())
-  email            String?     @unique
-  firstName        String?
-  lastName         String?
-  fullName         String?
-  identityCode     String?
-  userType         UserType?   @default(DRIVER)
-  phoneNumber      String?
-  password         String?
-  isVerified       Boolean     @default(false)
-  status           Boolean     @default(false)
-  serviceStatus    Boolean     @default(true)
-  userAddress     UserAddress[]
-  userInfo        UserInfos?
-  userLoc         UserLocation?
-  additionInfo     String?
-  deletedAt        DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  updatedBy        Int?         @default(0)
-  @@index([fullName, email, phoneNumber])
+  id               Int           @id @default(autoincrement()) @map("id")
+  email            String?       @unique @map("email")
+  firstName        String?       @map("first_name")
+  lastName         String?       @map("last_name")
+  fullName         String?       @map("full_name")
+  identityCode     String?       @map("identity_code")
+  userType         UserType?     @default(DRIVER) @map("user_type")
+  phoneNumber      String?       @map("phone_number")
+  password         String?       @map("password")
+  isVerified       Boolean       @default(false) @map("is_verified")
+  status           Boolean       @default(false) @map("status")
+  serviceStatus    Boolean       @default(true) @map("service_status")
+  userAddress      UserAddress[] @relation("UserAddress")
+  userInfo         UserInfos?    @relation("UserInfos")
+  userLoc          UserLocation? @relation("UserLocation")
+  additionInfo     String?       @map("addition_info")
+  deletedAt        DateTime?     @map("deleted_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  updatedBy        Int?          @default(0) @map("updated_by")
+  
+  @@map("users")
+  @@index([fullName, email, phoneNumber], map: "idx_users_full_name_email_phone")
 }
+
 model UserAddress {
-  id               Int         @id @default(autoincrement())
-  userId           Int
-  user             Users?      @relation(fields: [userId], references: [id])
-  street           String?
-  state            String?
-  country          String?
-  city             String?
-  zip              String?
-  addressType      locationType?   @default(HOME)
-  additionInfo     String?
-  status           Boolean     @default(false)
-  deletedAt        DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  updatedBy        Int?         @default(0)
+  id               Int           @id @default(autoincrement()) @map("id")
+  userId           Int           @map("user_id")
+  user             Users?        @relation("UserAddress", fields: [userId], references: [id])
+  street           String?       @map("street")
+  state            String?       @map("state")
+  country          String?       @map("country")
+  city             String?       @map("city")
+  zip              String?       @map("zip")
+  addressType      locationType? @default(HOME) @map("address_type")
+  additionInfo     String?       @map("addition_info")
+  status           Boolean       @default(false) @map("status")
+  deletedAt        DateTime?     @map("deleted_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  updatedBy        Int?          @default(0) @map("updated_by")
+  
+  @@map("user_address")
 }
+
 model UserInfos {
-  id               Int         @id @default(autoincrement())
-  userId           Int?        @unique
-  user             Users?      @relation(fields: [userId], references: [id])
-  birthDate        DateTime?
-  picture          String?
-  residenceAddress String?
-  occupation       String?
-  designation      String?
-  nid              Int?
-  refferalId       String?
-  tin              String?
-  status           Boolean     @default(false)
-  additionInfo     String?
-  deletedAt        DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  updatedBy        Int?         @default(0)
-  @@index([userId,nid])
+  id               Int           @id @default(autoincrement()) @map("id")
+  userId           Int?          @unique @map("user_id")
+  user             Users?        @relation("UserInfos", fields: [userId], references: [id])
+  birthDate        DateTime?     @map("birth_date")
+  picture          String?       @map("picture")
+  residenceAddress String?       @map("residence_address")
+  occupation       String?       @map("occupation")
+  designation      String?       @map("designation")
+  nid              Int?          @map("nid")
+  refferalId       String?       @map("refferal_id")
+  tin              String?       @map("tin")
+  status           Boolean       @default(false) @map("status")
+  additionInfo     String?       @map("addition_info")
+  deletedAt        DateTime?     @map("deleted_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  updatedBy        Int?          @default(0) @map("updated_by")
+  
+  @@map("user_infos")
+  @@index([userId, nid], map: "idx_user_infos_user_id_nid")
 }
+
 model Otp {
-  id               Int         @id @default(autoincrement())
-  userId           Int?
-  phoneNumber      String?
-  isVerify         Boolean     @default(false)
-  status           Boolean     @default(false)
-  otpExpireAt      DateTime?
-  deletedAt        DateTime?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  updatedBy        Int         @default(0)
-  @@index([userId, phoneNumber])
+  id               Int           @id @default(autoincrement()) @map("id")
+  userId           Int?          @map("user_id")
+  phoneNumber      String?       @map("phone_number")
+  isVerify         Boolean       @default(false) @map("is_verify")
+  status           Boolean       @default(false) @map("status")
+  otpExpireAt      DateTime?     @map("otp_expire_at")
+  deletedAt        DateTime?     @map("deleted_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  updatedBy        Int           @default(0) @map("updated_by")
+  
+  @@map("otp")
+  @@index([userId, phoneNumber], map: "idx_otp_user_id_phone")
 }
 
 model UserLocation {
-  id               Int         @id @default(autoincrement())
-  userId           Int?        @unique
-  user             Users?      @relation(fields: [userId], references: [id])
-  location         Decimal[] @db.Decimal(9,6) // [longitude, latitude]
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  @@index([userId, location])
+  id               Int           @id @default(autoincrement()) @map("id")
+  userId           Int?          @unique @map("user_id")
+  user             Users?        @relation("UserLocation", fields: [userId], references: [id])
+  location         Decimal[]     @db.Decimal(9,6) @map("location") // [longitude, latitude]
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  
+  @@map("user_location")
+  @@index([userId, location], map: "idx_user_location_user_id_location")
 }
 
 enum locationType {
@@ -110,6 +120,7 @@ enum locationType {
   WORK
   OTHER
 }
+
 enum loggerType {
   DASHBOARD_USER
   APPS_USER
