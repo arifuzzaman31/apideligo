@@ -4,7 +4,7 @@ import { PrismaClient } from '../generated/prisma/index.js';
 const prisma = new PrismaClient();
 
 // Create user info
-export const createUserInfo = async (req, res) => {
+export const createOrUpdateUserInfo = async (req, res) => {
   try {
     const userId = req.user.userId; // From auth middleware
     const {
@@ -25,10 +25,28 @@ export const createUserInfo = async (req, res) => {
     });
 
     if (existingUserInfo) {
-      return res.status(400).json({ error: 'User info already exists for this user' });
+      // Update existing user info
+      const updateData = await prisma.userInfos.update({
+        where: { userId },
+        data: {
+          birthDate: birthDate ? new Date(birthDate) : null,
+          picture,
+          residenceAddress,
+          occupation,
+          designation,
+          nid,
+          refferalId,
+          tin,
+          additionInfo
+        }
+      });
+      return res.status(200).json({ 
+        message: 'User info updated successfully',
+        userInfo: updateData 
+      });
     }
 
-    // Create user info
+    // Create new user info
     const userInfo = await prisma.userInfos.create({
       data: {
         userId,
@@ -49,7 +67,7 @@ export const createUserInfo = async (req, res) => {
       userInfo
     });
   } catch (error) {
-    console.error('Error creating user info:', error);
+    console.error('Error creating/updating user info:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -163,6 +181,71 @@ export const deleteUserInfo = async (req, res) => {
     res.status(200).json({ message: 'User info deleted successfully' });
   } catch (error) {
     console.error('Error deleting user info:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const createOrUpdateUserAddress = async (req, res) => {
+  try {
+    const userId = req.user.userId; // From auth middleware
+    const {
+      street,
+      state,
+      country,
+      city,
+      zip,
+      addressType = 'HOME',
+      additionInfo
+    } = req.body;
+
+    // Check if user address already exists for this user and address type
+    const existingUserAddress = await prisma.userAddress.findFirst({
+      where: { 
+        userId,
+        addressType
+      }
+    });
+
+    if (existingUserAddress) {
+      // Update existing user address
+      const updateData = await prisma.userAddress.update({
+        where: { id: existingUserAddress.id },
+        data: {
+          street,
+          state,
+          country,
+          city,
+          zip,
+          addressType,
+          additionInfo
+        }
+      });
+      return res.status(200).json({ 
+        message: 'User address updated successfully',
+        userAddress: updateData 
+      });
+    }
+
+    // Create new user address
+    const userAddress = await prisma.userAddress.create({
+      data: {
+        userId,
+        street,
+        state,
+        country,
+        city,
+        zip,
+        addressType,
+        additionInfo
+      }
+    });
+
+    res.status(201).json({
+      message: 'User address created successfully',
+      userAddress
+    });
+  } catch (error) {
+    console.error('Error creating/updating user address:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

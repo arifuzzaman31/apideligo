@@ -1,11 +1,12 @@
 // routes/userInfoRoute.js
 import express from 'express';
 import {
-  createUserInfo,
+  createOrUpdateUserInfo,
   getUserInfo,
   updateUserInfo,
   deleteUserInfo,
-  getAllUserInfo
+  getAllUserInfo,
+  createOrUpdateUserAddress
 } from '../controllers/UserInfoController.js';
 import { authenticate } from '../middlewares/authMiddleware.js';
 
@@ -15,7 +16,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Create user info
-router.post('/', createUserInfo);
+router.post('/', createOrUpdateUserInfo);
 
 // Get current user's info
 router.get('/me', getUserInfo);
@@ -27,5 +28,7 @@ router.put('/me', updateUserInfo);
 router.delete('/me', deleteUserInfo);
 
 router.get('/', getAllUserInfo);
+
+router.post('/address',createOrUpdateUserAddress)
 
 export default router;

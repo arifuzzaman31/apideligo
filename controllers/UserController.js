@@ -87,7 +87,7 @@ export const loginUser = async (req, res) => {
       // Generate session token
       const sessionToken = uuidv4();
       const expireAt = new Date();
-      expireAt.setDate(expireAt.getDate() + 1); // Token expires in 24 hours
+      expireAt.setDate(expireAt.getDate() + 365); // Token expires in 1  year
       
       // Delete any existing sessions for this user
       await prisma.session.deleteMany({
@@ -155,7 +155,7 @@ export const loginUser = async (req, res) => {
       // Generate session token
       const sessionToken = uuidv4();
       const expireAt = new Date();
-      expireAt.setDate(expireAt.getDate() + 1); // Token expires in 24 hours
+      expireAt.setDate(expireAt.getDate() + 365); // Token expires in 1 year
       
       // Create session
       const session = await prisma.session.create({

@@ -16,7 +16,7 @@ const router = express.Router();
 router.post('/create', createUser);
 router.post('/register', registerUser);
 router.post('/login', loginUser);
-router.get('/users/nearby', nearByMe);
+router.get('/nearby-me', nearByMe);
 // Protected routes
 router.post('/logout', authenticate, logoutUser);
 router.get('/profile', authenticate, getUserProfile);
