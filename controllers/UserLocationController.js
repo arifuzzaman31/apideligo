@@ -257,7 +257,7 @@ export const findUsersWithinRadius = async (req, res) => {
       latitude
     )}), 4326)::geography
         ) AS distance 
-      FROM "UserLocation" ul
+      FROM "user_location" ul
       JOIN "Users" u ON ul."userId" = u.id
       WHERE ST_DWithin(
           ST_MakePoint(ul.location[1], ul.location[2])::geography, 
