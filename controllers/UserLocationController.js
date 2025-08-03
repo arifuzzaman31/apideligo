@@ -247,10 +247,10 @@ export const findUsersWithinRadius = async (req, res) => {
     const usersWithinRadius = await prisma.$queryRaw`
       SELECT 
         ul.id,
-        ul."userId",
+        ul."user_id",
         ul.location,
-        u."fullName",
-        u."phoneNumber",
+        u."full_name",
+        u."phone_number",
         ST_Distance(
           ST_MakePoint(ul.location[1], ul.location[2])::geography, 
           ST_SetSRID(ST_MakePoint(${parseFloat(longitude)}, ${parseFloat(
@@ -258,7 +258,7 @@ export const findUsersWithinRadius = async (req, res) => {
     )}), 4326)::geography
         ) AS distance 
       FROM "user_location" ul
-      JOIN "users" u ON ul."userId" = u.id
+      JOIN "users" u ON ul."user_id" = u.id
       WHERE ST_DWithin(
           ST_MakePoint(ul.location[1], ul.location[2])::geography, 
           ST_SetSRID(ST_MakePoint(${parseFloat(longitude)}, ${parseFloat(
@@ -266,11 +266,11 @@ export const findUsersWithinRadius = async (req, res) => {
     )}), 4326)::geography, 
           ${parseFloat(radius)}
         ) 
-        AND u."serviceStatus" = true
+        AND u."service_status" = true
     AND u."status" = true
-    AND u."isVerified" = true
-    AND u."deletedAt" IS NULL
-    AND u."userType" = 'DRIVER'
+    AND u."is_verified" = true
+    AND u."deleted_at" IS NULL
+    AND u."user_type" = 'DRIVER'
       ORDER BY distance ASC
       LIMIT 50
     `;
