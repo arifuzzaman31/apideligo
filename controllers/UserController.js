@@ -1,24 +1,8 @@
 // controllers/UserController.js
-import { PrismaClient } from "../generated/prisma/index.js";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
-const prisma = new PrismaClient();
-// Helper function to generate JWT token
-const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "24h" });
-};
-
-// Helper function to hash password
-const hashPassword = async (password) => {
-  return await bcrypt.hash(password, 10);
-};
-
-// Helper function to verify password
-const verifyPassword = async (password, hashedPassword) => {
-  return await bcrypt.compare(password, hashedPassword);
-};
-
+import prisma from '../lib/prisma.mjs';
+import { hashPassword, verifyPassword } from "../utils/passwordUtils.js";
+import { generateToken, generateOTP } from "../utils/helper.js";
 // Create a new user
 export const createUser = async (req, res) => {
   try {
@@ -136,79 +120,157 @@ export const loginUser = async (req, res) => {
 
 // Register user
 export const registerUser = async (req, res) => {
+  const { firstName, lastName, email, phoneNumber, gender } = req.body;
+
   try {
-    const {
-      email,
-      firstName,
-      lastName,
-      phoneNumber,
-      password,
-      userType = "DRIVER",
-    } = req.body;
+    const result = await prisma.$transaction(async (tx) => {
+      // Check if user exists
+      const existingUser = await tx.users.findFirst({
+        where: {
+          OR: [{ email }, { phoneNumber }],
+        },
+      });
 
-    // Check if user already exists
-    const existingUser = await prisma.users.findUnique({
-      where: { email },
+      if (existingUser) {
+        throw new Error('User already exists');
+      }
+
+      // Create user
+      const user = await tx.users.create({
+        data: {
+          firstName,
+          lastName,
+          fullName: `${firstName} ${lastName}`,
+          email,
+          phoneNumber,
+          isVerified: false,
+          status: false,
+        },
+      });
+
+      // Generate and store OTP
+      const otp = generateOTP();
+      const otpExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes expiry
+
+      await tx.otp.create({
+        data: {
+          userId: user.id,
+          phoneNumber,
+          otp,
+          otpExpireAt: otpExpiry,
+          status: true,
+        },
+      });
+      // Create user info record
+      await tx.userInfos.create({
+        data: {
+          userId: user.id,
+          gender: gender,
+          status: false,
+        },
+      });
+      return { user, otp };
     });
-
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ error: "User with this email already exists" });
-    }
-
-    // Hash password
-    const hashedPassword = await hashPassword(password);
-
-    // Create user
-    const user = await prisma.users.create({
-      data: {
-        email,
-        firstName,
-        lastName,
-        fullName: `${firstName} ${lastName}`,
-        phoneNumber,
-        password: hashedPassword,
-        userType,
-        serviceStatus: true,
-        status: true,
-        isVerified: true,
-      },
-    });
-
-    // Generate session token
-    const sessionToken = uuidv4();
-    const expireAt = new Date();
-    expireAt.setDate(expireAt.getDate() + 365); // Token expires in 1 year
-
-    // Create session
-    const session = await prisma.session.create({
-      data: {
-        sessionToken,
-        userId: user.id,
-        expireAt,
-        loggerType: "APPS_USER",
-      },
-    });
-
-    // Generate JWT token
-    const token = generateToken(user.id);
-
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
-
     res.status(201).json({
-      message: "User registered successfully",
-      user: userWithoutPassword,
-      token,
-      sessionToken,
+      info: `OTP for ${phoneNumber}: ${result.otp}`,
+      message: "Registration initiated. OTP sent to your phone",
+      userId: result.user.id,
     });
   } catch (error) {
-    console.error("Error registering user:", error);
-    res.status(500).json({ error: "Internal server error" });
+    if (error.message === 'User already exists') {
+      return res.status(400).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Registration failed' });
   }
 };
 
+export const otpVerify = async (req, res) => {
+  const { phoneNumber, otp } = req.body;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Find valid OTP record
+      const otpRecord = await tx.otp.findFirst({
+        where: {
+          phoneNumber,
+          otp,
+          status: true,
+          otpExpireAt: { gte: new Date() },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (!otpRecord) {
+        throw new Error('Invalid or expired OTP');
+      }
+
+      // Update user verification status
+      await tx.users.update({
+        where: { id: otpRecord.userId },
+        data: { isVerified: true },
+      });
+
+      // Mark OTP as used
+      await tx.otp.update({
+        where: { id: otpRecord.id },
+        data: { isVerify: true, status: false },
+      });
+    });
+    res.json({ message: "Phone verified successfully" });
+  } catch (error) {
+    if (error.message === 'Invalid or expired OTP') {
+      return res.status(400).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'OTP verification failed' });
+  }
+};
+
+// Set user password
+export const setPassword = async (req, res) => {
+  const { phoneNumber, password } = req.body;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // Find verified user
+      const user = await tx.users.findFirst({
+        where: {
+          phoneNumber,
+          isVerified: true,
+        },
+      });
+
+      if (!user) {
+        return res.status(400).json({ error: "User not verified" });
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(password);
+
+      // Update user with password
+      await tx.users.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          status: true,
+          serviceStatus: true,
+        },
+      });
+      await tx.userInfos.update({
+        where: { id: user.id },
+        data: {
+          userId: user.id,
+          status: true,
+        },
+      });
+    });
+    res.json({ message: "Registration completed successfully" });
+  } catch (error) {
+    if (error.message === 'User not verified') {
+      return res.status(400).json({ error: error.message });
+    }
+    res.status(500).json({ error: 'Password setup failed' });
+  }
+};
 // Logout user
 export const logoutUser = async (req, res) => {
   try {
