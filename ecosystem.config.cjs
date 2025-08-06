@@ -3,13 +3,13 @@
 export default {
     apps: [
       {
-        name: "apideligo",
+        name: "testapideligo",
         script: "server.js",
-        cwd: "/var/www/apideligo",
+        cwd: "/var/www/test/apideligo",
         watch: true,
         env: {
           NODE_ENV: "development",
-          PORT: 3000
+          PORT: 3001
         }
       }
     ]
