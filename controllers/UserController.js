@@ -156,7 +156,7 @@ export const registerUser = async (req, res) => {
         data: {
           userId: user.id,
           phoneNumber,
-          otp,
+          otpNo:otp,
           otpExpireAt: otpExpiry,
           status: true,
         },
@@ -180,7 +180,7 @@ export const registerUser = async (req, res) => {
     if (error.message === 'User already exists') {
       return res.status(400).json({ error: error.message });
     }
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -193,7 +193,7 @@ export const otpVerify = async (req, res) => {
       const otpRecord = await tx.otp.findFirst({
         where: {
           phoneNumber,
-          otp,
+          otpNo:otp,
           status: true,
           otpExpireAt: { gte: new Date() },
         },
@@ -221,7 +221,7 @@ export const otpVerify = async (req, res) => {
     if (error.message === 'Invalid or expired OTP') {
       return res.status(400).json({ error: error.message });
     }
-    res.status(500).json({ error: 'OTP verification failed' });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -256,9 +256,12 @@ export const setPassword = async (req, res) => {
         },
       });
       await tx.userInfos.update({
-        where: { id: user.id },
+        where: { userId: user.id },
         data: {
           userId: user.id,
+          birthDate: new Date(),
+          approveTerms: true,
+          approvePrivacy: true,
           status: true,
         },
       });
@@ -268,7 +271,7 @@ export const setPassword = async (req, res) => {
     if (error.message === 'User not verified') {
       return res.status(400).json({ error: error.message });
     }
-    res.status(500).json({ error: 'Password setup failed' });
+    res.status(500).json({ error: error.message });
   }
 };
 // Logout user
