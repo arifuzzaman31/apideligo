@@ -228,8 +228,11 @@ export const otpVerify = async (req, res) => {
 // Set user password
 export const setPassword = async (req, res) => {
   const { phoneNumber, password } = req.body;
-
   try {
+    let userWithoutPassword;
+    let sessionToken;
+    let token;
+
     await prisma.$transaction(async (tx) => {
       // Find verified user
       const user = await tx.users.findFirst({
@@ -238,9 +241,8 @@ export const setPassword = async (req, res) => {
           isVerified: true,
         },
       });
-
       if (!user) {
-        return res.status(400).json({ error: "User not verified" });
+        throw new Error("User not verified");
       }
 
       // Hash password
@@ -255,9 +257,17 @@ export const setPassword = async (req, res) => {
           serviceStatus: true,
         },
       });
-      await tx.userInfos.update({
+
+      // Create or update user info
+      await tx.userInfos.upsert({
         where: { userId: user.id },
-        data: {
+        update: {
+          birthDate: new Date(),
+          approveTerms: true,
+          approvePrivacy: true,
+          status: true,
+        },
+        create: {
           userId: user.id,
           birthDate: new Date(),
           approveTerms: true,
@@ -265,13 +275,44 @@ export const setPassword = async (req, res) => {
           status: true,
         },
       });
+
+      // Generate session token
+      sessionToken = uuidv4();
+      const expireAt = new Date();
+      expireAt.setDate(expireAt.getDate() + 365); // Token expires in 1 year
+
+      // Create session using transaction
+      await tx.session.create({
+        data: {
+          sessionToken,
+          userId: user.id,
+          expireAt,
+          loggerType: "APPS_USER",
+        },
+      });
+
+      // Generate JWT token
+      token = generateToken(user.id);
+
+      // Prepare user response without password
+      const { password: _, ...userData } = user;
+      userWithoutPassword = userData;
     });
-    res.json({ message: "Registration completed successfully" });
+
+    // Send success response
+    res.status(201).json({
+      message: "Registration completed successfully",
+      user: userWithoutPassword,
+      token,
+      sessionToken,
+    });
   } catch (error) {
+    // Handle specific error cases
     if (error.message === 'User not verified') {
       return res.status(400).json({ error: error.message });
     }
-    res.status(500).json({ error: error.message });
+    // Handle other errors
+    res.status(500).json({ error: error.message || "Internal server error" });
   }
 };
 // Logout user
