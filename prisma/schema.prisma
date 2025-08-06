@@ -94,6 +94,7 @@ model Otp {
   id               Int           @id @default(autoincrement()) @map("id")
   userId           Int?          @map("user_id")
   phoneNumber      String?       @map("phone_number")
+  otpNo            Int?          @map("otp_no")
   isVerify         Boolean       @default(false) @map("is_verify")
   status           Boolean       @default(false) @map("status")
   otpExpireAt      DateTime?     @map("otp_expire_at")
