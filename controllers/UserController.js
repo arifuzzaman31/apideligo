@@ -1,6 +1,6 @@
 // controllers/UserController.js
 import { v4 as uuidv4 } from "uuid";
-import prisma from '../lib/prisma.mjs';
+import prisma from '../lib/prisma.js';
 import { hashPassword, verifyPassword } from "../utils/passwordUtils.js";
 import { generateToken, generateOTP } from "../utils/helper.js";
 // Create a new user

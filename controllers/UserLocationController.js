@@ -1,8 +1,5 @@
 // controllers/UserLocationController.js
-import { PrismaClient } from "../generated/prisma/index.js";
-
-const prisma = new PrismaClient();
-
+import prisma from '../lib/prisma.js';
 // Create or update user location
 export const createOrUpdateUserLocation = async (req, res) => {
   try {
