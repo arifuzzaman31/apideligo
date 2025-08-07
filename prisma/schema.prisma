@@ -77,6 +77,7 @@ model UserInfos {
   nid              Int?          @map("nid")
   refferalId       String?       @map("refferal_id")
   tin              String?       @map("tin")
+  rattings         Float         @default(1)@map("rattings")
   status           Boolean       @default(false) @map("status")
   additionInfo     String?       @map("addition_info")
   approveTerms    Boolean       @default(false) @map("approve_terms")
@@ -117,6 +118,17 @@ model UserLocation {
   
   @@map("user_location")
   @@index([userId, location], map: "idx_user_location_user_id_location")
+}
+
+model Category {
+  id    Int     @id @default(autoincrement()) @map("id")
+  categoryName  String        @map("category_name")
+  icon      String?           @map("icon")
+  status           Boolean       @default(false) @map("status")
+  deletedAt        DateTime?     @map("deleted_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  updatedBy        Int?          @default(0) @map("updated_by")
 }
 
 enum locationType {
