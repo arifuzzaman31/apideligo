@@ -1,8 +1,8 @@
-// controllers/UserController.js
 import { v4 as uuidv4 } from "uuid";
-import prisma from '../lib/prisma.js';
-import { hashPassword, verifyPassword } from "../utils/passwordUtils.js";
-import { generateToken, generateOTP } from "../utils/helper.js";
+import prisma from '../../lib/prisma.js';
+import { hashPassword, verifyPassword } from "../../utils/passwordUtils.js";
+import { generateToken, generateOTP } from "../../utils/helper.js";
+// import admin from "../../config/firebase.js";
 // Create a new user
 export const createUser = async (req, res) => {
   try {
@@ -61,31 +61,27 @@ export const createUser = async (req, res) => {
 
 // Login user
 export const loginUser = async (req, res) => {
+  const { phoneNumber } = req.body;
   try {
-    const { email, password } = req.body;
-
-    // Find user by email
+    // Find user by phone number
     const user = await prisma.users.findUnique({
-      where: { email },
+      where: { phoneNumber },
     });
 
     if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(404).json({ error: "User not found" });
     }
 
-    // Verify password
-    const isPasswordValid = await verifyPassword(password, user.password);
-
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: "Invalid credentials" });
+    if (!user.isVerified) {
+      return res.status(401).json({ error: "User not verified" });
     }
 
     // Generate session token
     const sessionToken = uuidv4();
     const expireAt = new Date();
-    expireAt.setDate(expireAt.getDate() + 365); // Token expires in 1  year
+    expireAt.setDate(expireAt.getDate() + 365);
 
-    // Delete any existing sessions for this user
+    // Delete existing sessions
     await prisma.session.deleteMany({
       where: { userId: user.id },
     });
@@ -100,11 +96,11 @@ export const loginUser = async (req, res) => {
       },
     });
 
-    // Generate JWT token
+    // Generate JWT
     const token = generateToken(user.id);
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
+    // Remove sensitive data
+    const { password, ...userWithoutPassword } = user;
 
     res.status(200).json({
       message: "Login successful",
@@ -121,7 +117,6 @@ export const loginUser = async (req, res) => {
 // Register user
 export const registerUser = async (req, res) => {
   const { firstName, lastName, email, phoneNumber, gender } = req.body;
-
   try {
     const result = await prisma.$transaction(async (tx) => {
       // Check if user exists
@@ -130,12 +125,11 @@ export const registerUser = async (req, res) => {
           OR: [{ email }, { phoneNumber }],
         },
       });
-
       if (existingUser) {
         throw new Error('User already exists');
       }
 
-      // Create user
+      // Create user without verification
       const user = await tx.users.create({
         data: {
           firstName,
@@ -148,32 +142,20 @@ export const registerUser = async (req, res) => {
         },
       });
 
-      // Generate and store OTP
-      const otp = generateOTP();
-      const otpExpiry = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes expiry
-
-      await tx.otp.create({
-        data: {
-          userId: user.id,
-          phoneNumber,
-          otpNo:otp,
-          otpExpireAt: otpExpiry,
-          status: true,
-        },
-      });
       // Create user info record
       await tx.userInfos.create({
         data: {
           userId: user.id,
-          gender: gender,
+          gender,
           status: false,
         },
       });
-      return { user, otp };
+
+      return { user };
     });
+
     res.status(201).json({
-      info: `OTP for ${phoneNumber}: ${result.otp}`,
-      message: "Registration initiated. OTP sent to your phone",
+      message: "Registration successful. Please verify your phone number.",
       userId: result.user.id,
     });
   } catch (error) {
@@ -184,44 +166,92 @@ export const registerUser = async (req, res) => {
   }
 };
 
-export const otpVerify = async (req, res) => {
-  const { phoneNumber, otp } = req.body;
-
+export const sendOTP = async (req, res) => {
+  const { phoneNumber } = req.body;
   try {
-    await prisma.$transaction(async (tx) => {
-      // Find valid OTP record
-      const otpRecord = await tx.otp.findFirst({
-        where: {
-          phoneNumber,
-          otpNo:otp,
-          status: true,
-          otpExpireAt: { gte: new Date() },
-        },
-        orderBy: { createdAt: "desc" },
-      });
-
-      if (!otpRecord) {
-        throw new Error('Invalid or expired OTP');
-      }
-
-      // Update user verification status
-      await tx.users.update({
-        where: { id: otpRecord.userId },
-        data: { isVerified: true },
-      });
-
-      // Mark OTP as used
-      await tx.otp.update({
-        where: { id: otpRecord.id },
-        data: { isVerify: true, status: false },
-      });
+    const user = await prisma.users.findUnique({
+      where: { phoneNumber },
     });
-    res.json({ message: "Phone verified successfully" });
-  } catch (error) {
-    if (error.message === 'Invalid or expired OTP') {
-      return res.status(400).json({ error: error.message });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
-    res.status(500).json({ error: error.message });
+    // Send OTP using Firebase
+    // await admin.auth().createUser({
+    //   phoneNumber,
+    // });
+
+    res.status(200).json({
+      message: "OTP sent successfully",
+      phoneNumber,
+    });
+  } catch (error) {
+    console.error("Error sending OTP:", error);
+    res.status(500).json({ error: "Failed to send OTP" });
+  }
+};
+
+export const verifyOTP = async (req, res) => {
+  const { phoneNumber, otp } = req.body;
+  try {
+    // Find user by phone number
+    const user = await prisma.users.findUnique({
+      where: { phoneNumber },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Verify OTP with Firebase
+    // const decodedToken = await admin.auth().verifyIdToken(otp);
+    // const firebaseUid = decodedToken.uid;
+
+    // Update user with Firebase UID and verification status
+    const updatedUser = await prisma.users.update({
+      where: { id: user.id },
+      data: {
+        // firebaseUid,
+        isVerified: true,
+        status: true,
+      },
+    });
+
+    // Generate session token
+    const sessionToken = uuidv4();
+    const expireAt = new Date();
+    expireAt.setDate(expireAt.getDate() + 365);
+
+    // Delete existing sessions
+    await prisma.session.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Create new session
+    const session = await prisma.session.create({
+      data: {
+        sessionToken,
+        userId: user.id,
+        expireAt,
+        loggerType: "APPS_USER",
+      },
+    });
+
+    // Generate JWT
+    const token = generateToken(user.id);
+
+    // Remove sensitive data
+    const { password, ...userWithoutPassword } = updatedUser;
+
+    res.status(200).json({
+      message: "OTP verified successfully",
+      user: userWithoutPassword,
+      token,
+      sessionToken,
+    });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(401).json({ error: "Invalid OTP" });
   }
 };
 

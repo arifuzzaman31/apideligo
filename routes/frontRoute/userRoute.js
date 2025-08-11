@@ -1,4 +1,3 @@
-// routes/userRoute.js
 import express from 'express';
 import {
     createUser,
@@ -7,10 +6,11 @@ import {
     logoutUser,
     getUserProfile,
     nearByMe,
+    sendOTP,
     setPassword,
-    otpVerify
-} from '../controllers/UserController.js';
-import { authenticate } from '../middlewares/authMiddleware.js';
+    verifyOTP
+} from '../../controllers/frontend/UserController.js';
+import { authenticate } from '../../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
@@ -18,7 +18,8 @@ const router = express.Router();
 router.post('/create', createUser);
 router.post('/login', loginUser);
 router.post('/register', registerUser);
-router.post('/verify-otp', otpVerify);
+router.post('/send-otp', sendOTP);
+router.post('/verify-otp', verifyOTP);
 router.post('/set-password', setPassword);
 router.get('/nearby-me', nearByMe);
 // Protected routes

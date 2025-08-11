@@ -7,8 +7,8 @@ import {
   deleteUserInfo,
   getAllUserInfo,
   createOrUpdateUserAddress
-} from '../controllers/UserInfoController.js';
-import { authenticate } from '../middlewares/authMiddleware.js';
+} from '../../controllers/frontend/UserInfoController.js';
+import { authenticate } from '../../middlewares/authMiddleware.js';
 
 const router = express.Router();
 

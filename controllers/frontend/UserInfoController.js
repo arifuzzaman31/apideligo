@@ -1,5 +1,4 @@
-// controllers/UserInfoController.js
-import prisma from '../lib/prisma.js';
+import prisma from '../../lib/prisma.js';
 
 // Create user info
 export const createOrUpdateUserInfo = async (req, res) => {

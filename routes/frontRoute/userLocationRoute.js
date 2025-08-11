@@ -7,8 +7,8 @@ import {
   deleteUserLocation,
   getAllUserLocations,
   findUsersWithinRadius
-} from '../controllers/UserLocationController.js';
-import { authenticate } from '../middlewares/authMiddleware.js';
+} from '../../controllers/frontend/UserLocationController.js';
+import { authenticate } from '../../middlewares/authMiddleware.js';
 
 const router = express.Router();
 

@@ -34,6 +34,7 @@ model Users {
   userAddress      UserAddress[] @relation("UserAddress")
   userInfo         UserInfos?    @relation("UserInfos")
   userLoc          UserLocation? @relation("UserLocation")
+  firebaseUid      String?       @map("firebase_uid")
   additionInfo     String?       @map("addition_info")
   deletedAt        DateTime?     @map("deleted_at")
   createdAt        DateTime      @default(now()) @map("created_at")
@@ -91,23 +92,6 @@ model UserInfos {
   @@index([userId, nid], map: "idx_user_infos_user_id_nid")
 }
 
-model Otp {
-  id               Int           @id @default(autoincrement()) @map("id")
-  userId           Int?          @map("user_id")
-  phoneNumber      String?       @map("phone_number")
-  otpNo            Int?          @map("otp_no")
-  isVerify         Boolean       @default(false) @map("is_verify")
-  status           Boolean       @default(false) @map("status")
-  otpExpireAt      DateTime?     @map("otp_expire_at")
-  deletedAt        DateTime?     @map("deleted_at")
-  createdAt        DateTime      @default(now()) @map("created_at")
-  updatedAt        DateTime      @updatedAt @map("updated_at")
-  updatedBy        Int           @default(0) @map("updated_by")
-  
-  @@map("otp")
-  @@index([userId, phoneNumber], map: "idx_otp_user_id_phone")
-}
-
 model UserLocation {
   id               Int           @id @default(autoincrement()) @map("id")
   userId           Int?          @unique @map("user_id")
@@ -120,15 +104,18 @@ model UserLocation {
   @@index([userId, location], map: "idx_user_location_user_id_location")
 }
 
-model Category {
+model Categories {
   id    Int     @id @default(autoincrement()) @map("id")
   categoryName  String        @map("category_name")
   icon      String?           @map("icon")
+  type      String?           @map("type")
   status           Boolean       @default(false) @map("status")
   deletedAt        DateTime?     @map("deleted_at")
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
   updatedBy        Int?          @default(0) @map("updated_by")
+  @@map("categories")
+  @@index([categoryName], map: "idx_categories_category_name")
 }
 
 enum locationType {
